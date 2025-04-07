@@ -12,12 +12,14 @@ function App() {
   const [modalEditar, setModalEditar] = useState(false);
   const [modalIncluir, setModalIncluir] = useState(false);
   const [modalExcluir, setModalExcluir] = useState(false);
+  const [validarCampos, setValidarCampos] = useState(false);
+
 
   const [culturaSelecionado, setCulturaSelecionado] = useState({
-    id: '',
+    id: 0,
     nome: '',
     tipo: '',
-    area: '',
+    area: 0,
     descricao: ''
   })
 
@@ -30,7 +32,6 @@ function App() {
     console.log(culturaSelecionado);
   }
 
-  //-----modal controle do estado 
   const abrirFecharModalIncluir = () => {
     setModalIncluir(!modalIncluir);
   }
@@ -52,24 +53,36 @@ function App() {
       })
   }
 
-  const pedidoPost=async()=>{
+  const pedidoPost = async () => {
+    const { nome, tipo, area } = culturaSelecionado;
+
+    setValidarCampos(true);
+
+    if (!nome || !tipo || !area) return;
+
+
     delete culturaSelecionado.id;
-    culturaSelecionado.area=parseFloat(culturaSelecionado.area);
-      await axios.post(baseUrl, culturaSelecionado)
-    .then(response=>{
-      setData(data.concat(response.data));
-      abrirFecharModalIncluir();
-    }).catch(error=>{
-      console.log(error);
-    })
+    culturaSelecionado.area = parseFloat(culturaSelecionado.area);
+    await axios.post(baseUrl, culturaSelecionado)
+      .then(response => {
+        setData(data.concat(response.data));
+        abrirFecharModalIncluir();
+      }).catch(error => {
+        console.log(error);
+      })
   }
-  
+
   const culturaPut = async () => {
+    const { nome, tipo, area } = culturaSelecionado;
+
+    setValidarCampos(true);
+
+    if (!nome || !tipo || !area) return;
+
     await axios.put(baseUrl + "/" + culturaSelecionado.id, culturaSelecionado)
       .then(response => {
         var resposta = response.data;
         var dadosAuxiliar = data;
-        //eslint-disable-next-line
         dadosAuxiliar.map(cultura => {
           if (cultura.id === culturaSelecionado.id) {
             cultura.nome = resposta.nome;
@@ -78,6 +91,7 @@ function App() {
             cultura.descricao = resposta.descricao;
           }
         });
+        pedidoGet();
         abrirFecharModalEditar();
       }).catch(error => {
         console.log(error);
@@ -87,7 +101,7 @@ function App() {
   const culturaDelete = async () => {
     await axios.delete(baseUrl + "/" + culturaSelecionado.id)
       .then(response => {
-        setData(data.filter(cultura => cultura.id !== response.data));
+        setData(data.filter(cultura => cultura.id !== culturaSelecionado.id));
         abrirFecharModalExcluir();
       }).catch(error => {
         console.log(error);
@@ -106,96 +120,161 @@ function App() {
 
 
   return (
-    <div className="cultura-container">
-      <br />
-      <h3>Lista de Culturas</h3>
-      <header>
-        <button onClick={() => abrirFecharModalIncluir()} className="btn btn-success">Incluir Nova Cultura</button>
-      </header>
-      <table className="table table-bordered" >
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Nome</th>
-            <th>Tipo</th>
-            <th>Área</th>
-            <th>Descrição</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map(cultura => (
-            <tr key={cultura.id}>
-              <td>{cultura.id}</td>
-              <td>{cultura.nome}</td>
-              <td>{cultura.tipo}</td>
-              <td>{cultura.area}</td>
-              <td>{cultura.descricao}</td>
-              <td>
-                <button className="btn btn-primary" onClick={() => selecionarCultura(cultura, "Editar")}>Editar</button> {"  "}
-                <button className="btn btn-danger" onClick={() => selecionarCultura(cultura, "Excluir")}>Excluir</button>
-              </td>
+    <div className="container mt-5">
+      <h2 className="text-center mb-4">🌾 Lista de Culturas</h2>
+      <div className="d-flex justify-content-end mb-3">
+        <button onClick={abrirFecharModalIncluir} className="btn btn-success">
+          <i className="bi bi-plus-circle"></i> Nova Cultura
+        </button>
+      </div>
+
+      <div className="table-responsive">
+        <table className="table table-hover table-bordered">
+          <thead className="table-dark">
+            <tr>
+              <th>ID</th>
+              <th>Nome</th>
+              <th>Tipo</th>
+              <th>Área (ha)</th>
+              <th>Descrição</th>
+              <th>Ações</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.map(cultura => (
+              <tr key={cultura.id}>
+                <td>{cultura.id}</td>
+                <td>{cultura.nome}</td>
+                <td>{cultura.tipo}</td>
+                <td>{cultura.area}</td>
+                <td>{cultura.descricao}</td>
+                <td>
+                  <button className="btn btn-outline-primary btn-sm me-2" onClick={() => selecionarCultura(cultura, "Editar")}>
+                    <i className="bi bi-pencil-square"></i> Editar
+                  </button>
+                  <button className="btn btn-outline-danger btn-sm" onClick={() => selecionarCultura(cultura, "Excluir")}>
+                    <i className="bi bi-trash"></i> Excluir
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <Modal isOpen={modalIncluir}>
         <ModalHeader>Incluir Culturas</ModalHeader>
         <ModalBody>
           <div className="form-group">
             <label>Nome:</label>
-            <input type="text" className="form-control" name="nome" onChange={handleChange} />
+            <input
+              type="text"
+              className={`form-control ${validarCampos && !culturaSelecionado.nome ? 'is-invalid' : ''}`}
+              name="nome"
+              onChange={handleChange}
+            />
+
             <label>Tipo:</label>
-            <input type="text" className="form-control" name="tipo" onChange={handleChange} />
+            <input
+              type="text"
+              className={`form-control ${validarCampos && !culturaSelecionado.tipo ? 'is-invalid' : ''}`}
+              name="tipo"
+              onChange={handleChange}
+            />
+
             <label>Área (ha):</label>
-            <input type="number" className="form-control" name="area" onChange={handleChange} />
+            <input
+              type="number"
+              className={`form-control ${validarCampos && !culturaSelecionado.area ? 'is-invalid' : ''}`}
+              name="area"
+              onChange={handleChange}
+            />
+
             <label>Descrição:</label>
-            <textarea className="form-control" name="descricao" onChange={handleChange}></textarea>
+            <textarea
+              className="form-control"
+              name="descricao"
+              onChange={handleChange}
+            ></textarea>
           </div>
         </ModalBody>
         <ModalFooter>
-          <button className="btn btn-primary" onClick={() => pedidoPost()}>Incluir</button>{"   "}
-          <button className="btn btn-danger" onClick={() => abrirFecharModalIncluir()}>Cancelar</button>
+          <button className="btn btn-primary" onClick={() => pedidoPost()}>Incluir</button>{" "}
+          <button className="btn btn-danger" onClick={() => { abrirFecharModalIncluir(); setValidarCampos(false); }}>Cancelar</button>
         </ModalFooter>
       </Modal>
+
 
       <Modal isOpen={modalEditar}>
         <ModalHeader>Editar Cultura</ModalHeader>
         <ModalBody>
           <div className="form-group">
             <label>Nome:</label>
-            <input type="text" className="form-control" name="nome" onChange={handleChange} value={culturaSelecionado && culturaSelecionado.nome} />
+            <input
+              type="text"
+              className={`form-control ${validarCampos && !culturaSelecionado.nome ? 'is-invalid' : ''}`}
+              name="nome"
+              onChange={handleChange}
+              value={culturaSelecionado.nome || ''}
+            />
+            {validarCampos && !culturaSelecionado.nome && (
+              <div className="invalid-feedback">Campo obrigatório</div>
+            )}
+
             <label>Tipo:</label>
-            <input type="text" className="form-control" name="tipo" onChange={handleChange} value={culturaSelecionado && culturaSelecionado.tipo} />
+            <input
+              type="text"
+              className={`form-control ${validarCampos && !culturaSelecionado.tipo ? 'is-invalid' : ''}`}
+              name="tipo"
+              onChange={handleChange}
+              value={culturaSelecionado.tipo || ''}
+            />
+            {validarCampos && !culturaSelecionado.tipo && (
+              <div className="invalid-feedback">Campo obrigatório</div>
+            )}
+
             <label>Área (ha):</label>
-            <input type="number" className="form-control" name="area" onChange={handleChange} value={culturaSelecionado && culturaSelecionado.area} />
+            <input
+              type="number"
+              className={`form-control ${validarCampos && !culturaSelecionado.area ? 'is-invalid' : ''}`}
+              name="area"
+              onChange={handleChange}
+              value={culturaSelecionado.area || ''}
+            />
+            {validarCampos && !culturaSelecionado.area && (
+              <div className="invalid-feedback">Campo obrigatório</div>
+            )}
+
             <label>Descrição:</label>
-            <textarea className="form-control" name="descricao" onChange={handleChange} value={culturaSelecionado && culturaSelecionado.descricao}></textarea>
+            <textarea
+              className="form-control"
+              name="descricao"
+              onChange={handleChange}
+              value={culturaSelecionado.descricao || ''}
+            ></textarea>
           </div>
         </ModalBody>
         <ModalFooter>
-          <button className="btn btn-primary" onClick={() => culturaPut()}>Editar</button>{"   "}
-          <button className="btn btn-danger" onClick={() => abrirFecharModalEditar()}>Cancelar</button>
+          <button className="btn btn-primary" onClick={() => culturaPut()}>Editar</button>{" "}
+          <button className="btn btn-danger" onClick={() => { abrirFecharModalEditar(); setValidarCampos(false); }}>Cancelar</button>
         </ModalFooter>
       </Modal>
+
 
       <Modal isOpen={modalExcluir}>
+        <ModalHeader className="bg-danger text-white">Confirmação</ModalHeader>
         <ModalBody>
-          Confirma a exclusão desta cultura : {culturaSelecionado && culturaSelecionado.nome} ?
+          Tem certeza que deseja excluir a cultura <strong>{culturaSelecionado && culturaSelecionado.nome}</strong>?
         </ModalBody>
         <ModalFooter>
-          <button className="btn btn-danger" onClick={() => culturaDelete()}>
-            Sim
+          <button className="btn btn-danger" onClick={culturaDelete}>
+            <i className="bi bi-trash-fill"></i> Sim, excluir
           </button>
-          <button
-            className="btn btn-secondary" onClick={() => abrirFecharModalExcluir()}
-          >
-            Não
+          <button className="btn btn-secondary" onClick={abrirFecharModalExcluir}>
+            <i className="bi bi-x-circle"></i> Cancelar
           </button>
         </ModalFooter>
       </Modal>
-
     </div>
   );
 }
